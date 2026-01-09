@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Approval Required</title>
+    <style>
+        body { font-family: sans-serif; padding: 50px; text-align: center; color: #333; }
+        h1 { color: #f0ad4e; }
+        .details { background: #fcf8e3; color: #8a6d3b; padding: 20px; border-radius: 4px; margin: 20px auto; max-width: 600px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; }
+        #approve { background: #5cb85c; color: white; border: none; }
+        #deny { background: #d9534f; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h1>Human Approval Required</h1>
+    <p>The agent wants to perform the following action:</p>
+    <div class="details">
+        <p><strong>URL:</strong> <span id="url"></span></p>
+        <p><strong>Reason:</strong> <span id="reason"></span></p>
+    </div>
+    <button id="approve-once">Approve (Allow Once)</button>
+    <button id="approve-always" style="background-color: #0275d8; color: white; border: none;">Approve (Allow Always)</button>
+    <button id="deny">Deny</button>
+
+    <script src="approval.js"></script>
+</body>
+</html>

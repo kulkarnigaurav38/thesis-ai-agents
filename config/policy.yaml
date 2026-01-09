@@ -1,0 +1,164 @@
+# ODRL Policy Definition
+uid: "http://example.com/policy:001"
+type: "http://www.w3.org/ns/odrl/2/Set"
+profile: "http://example.com/odrl:profile:01"
+
+permission:
+  # --- Payment Use Case ---
+  # 1. Trusted Merchant (Allow Always)
+  - target: "http://example.com/asset:payment_gateway"
+    action: "pay"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "is_trusted_merchant"
+        operator: "eq"
+        rightOperand: true
+
+  # 2. Pre-approved Merchants (Legacy Trust)
+  - target: "http://example.com/asset:payment_gateway"
+    action: "pay"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "merchant"
+        operator: "isAnyOf"
+        rightOperand: ["CoffeeShop", "BookStore"]
+
+  # 3. Catch-All Payment (Requires HITL)
+  - target: "http://example.com/asset:payment_gateway"
+    action: "pay"
+    assignee: "user:agent-007"
+    # No constraint means "Match Any".
+    # But we attach a Duty to enforcing consent.
+    duty:
+      - action: "obtainConsent"
+        constraint:
+          - name: "amount"
+            operator: "gte"
+            rightOperand: 0 # Always ask for consent for unknown merchants
+
+  # --- Navigation Use Case ---
+  # 1. Trusted Host (Allow Always)
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "is_trusted_host"
+        operator: "eq"
+        rightOperand: true
+
+  # 2. Pre-approved Sites
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "url"
+        operator: "isAnyOf"
+        rightOperand: ["google.com", "github.com", "stackoverflow.com"]
+  
+  # 3. Catch-All Navigation (Requires HITL) (Optional, or Default Deny)
+  # For safety, let's allow navigation to arbitrary sites ONLY with Consent
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    assignee: "user:agent-007"
+    duty:
+      - action: "obtainConsent"
+
+  # --- Network Egress ---
+  # 1. Trusted Host
+  - target: "http://example.com/asset:network"
+    action: "request"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "is_trusted_host"
+        operator: "eq"
+        rightOperand: true
+
+  # 2. Allowlist
+  - target: "http://example.com/asset:network"
+    action: "request"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "host"
+        operator: "isAnyOf"
+        rightOperand: ["api.github.com", "pypi.org"]
+
+  # --- File Access ---
+  # 1. Trusted File
+  - target: "http://example.com/asset:filesystem"
+    action: "read"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "is_trusted_file"
+        operator: "eq"
+        rightOperand: true
+
+  # 2. Allowlist
+  - target: "http://example.com/asset:filesystem"
+    action: "read"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "filename"
+        operator: "isAnyOf"
+        rightOperand: ["README.md", "public.txt"]
+
+  # --- Card Network Use Case (Phase 4) ---
+  # 1. Visa Limit ($100)
+  - target: "http://example.com/asset:card_network"
+    action: "charge"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "card_type"
+        operator: "eq"
+        rightOperand: "Visa"
+      - name: "amount"
+        operator: "lt"
+        rightOperand: 100
+
+  # 2. Mastercard Limit ($500)
+  - target: "http://example.com/asset:card_network"
+    action: "charge"
+    assignee: "user:agent-007"
+    constraint:
+      - name: "card_type"
+        operator: "eq"
+        rightOperand: "Mastercard"
+      - name: "amount"
+        operator: "lt"
+        rightOperand: 500
+
+  # 2. Catch-All Booking (Requires HITL) (e.g. First Class > $600)
+  - target: "http://example.com/asset:airline_agent"
+    action: "book_flight"
+    assignee: "user:agent-007"
+    duty:
+      - action: "obtainConsent"
+
+  # --- Calendar Use Case (Browser Demo) ---
+  # 1. View Event (Allowed)
+  - target: "http://example.com/asset:calendar_event"
+    action: "view" # Currently background.js defaults generic URLs to 'navigate', but we can map specific ones
+    assignee: "user:agent-007"
+    constraint: [] # Auto-allow
+
+  # 2. Delete Event (Requires HITL)
+  - target: "http://example.com/asset:calendar_event"
+    action: "delete"
+    assignee: "user:agent-007"
+    duty:
+      - action: "obtainConsent"
+
+  # 3. Catch-All Card Charge (Requires HITL)
+  - target: "http://example.com/asset:card_network"
+    action: "charge"
+    assignee: "user:agent-007"
+    duty:
+      - action: "obtainConsent"
+
+# Explicit Prohibitions (Checked First)
+prohibition:
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    constraint:
+      - name: "url"
+        operator: "eq"
+        rightOperand: "malicious.com"

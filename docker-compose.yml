@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  egress-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "src/proxy.py"]
+    volumes:
+      - ./audit.db:/app/audit.db # Share DB for logging
+    ports:
+      - "8080:8080"
+    networks:
+      - agent-net
+
+  agent-sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "src/demo_cli_agent.py"]
+    environment:
+      - HTTP_PROXY=http://egress-proxy:8080
+      - HTTPS_PROXY=http://egress-proxy:8080
+    depends_on:
+      - egress-proxy
+    networks:
+      - agent-net
+
+networks:
+  agent-net:
+    driver: bridge
