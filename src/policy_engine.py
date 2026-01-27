@@ -50,6 +50,22 @@ class ODRLEvaluator:
             is_trusted = self.user_policy.is_trusted("file", request.context['filename'])
             request.context['is_trusted_file'] = is_trusted
 
+        # [NEW] Default Safety Checks (Consent Needed for Untrusted Navigation/Payment)
+        if request.action == "navigate":
+            # Target is URL. Check if host is trusted.
+            # Assuming target is full URL, we might need to extract host, but for now user_config expects full 'target' or 'host'
+            # Let's check 'host' from context if available, else target.
+            host = request.context.get('host', request.target)
+            if not self.user_policy.is_trusted("host", host) and not self.user_policy.is_trusted("domain", host):
+                 return Verdict(status="CONSENT_NEEDED", reason=f"Untrusted host: {host}")
+            else:
+                 # Implicitly Allow Trusted Hosts for Navigation
+                 return Verdict(status="PERMIT", reason="Host is in Trusted List")
+
+        if request.action == "pay":
+            # Payments always require explicit consent unless a specific 'allow_always' token exists (omitted for now)
+             return Verdict(status="CONSENT_NEEDED", reason="Payment action requires explicit user approval.")
+
         # 1. Check Prohibitions (Deny overrides Allow)
         for prohibition in self.policy.get('prohibition', []):
             if self._match_rule(prohibition, request):

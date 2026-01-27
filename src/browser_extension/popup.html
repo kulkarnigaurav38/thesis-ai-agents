@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { width: 300px; font-family: 'Segoe UI', sans-serif; padding: 10px; }
+        h3 { margin-top: 0; color: #333; }
+        .request-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        .request-info { font-size: 13px; margin-bottom: 8px; }
+        .btn-group { display: flex; gap: 5px; }
+        button {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-allow { background: #4CAF50; color: white; }
+        .btn-always { background: #2196F3; color: white; }
+        .btn-deny { background: #F44336; color: white; }
+        .no-requests { color: #666; font-style: italic; text-align: center; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h3>Agent Authorization</h3>
+    <div id="request-list">
+        <div class="no-requests">No pending requests</div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
