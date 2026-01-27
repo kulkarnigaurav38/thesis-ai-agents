@@ -1,11 +1,17 @@
 // Background Service Worker
 
-// 1. Polling for Pending Requests (Notifications)
-const SERVER_URL = "http://127.0.0.1:5000";
+// =============================================================================
+// Configuration
+// =============================================================================
+const POLICY_ENGINE_URL = "http://127.0.0.1:5000";  // For polling pending requests
+const SHIM_URL = "http://127.0.0.1:8000";           // Universal Security Shim
 
+// =============================================================================
+// 1. Polling for Pending Requests (Notifications)
+// =============================================================================
 async function checkPendingRequests() {
     try {
-        const response = await fetch(`${SERVER_URL}/pending_requests?t=${Date.now()}`);
+        const response = await fetch(`${POLICY_ENGINE_URL}/pending_requests?t=${Date.now()}`);
         const pending = await response.json();
 
         const count = pending.length;
@@ -37,10 +43,12 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         checkPendingRequests();
     }
 });
-// 3. Navigation Interception (Redirect to Block Page)
+
+// =============================================================================
+// 2. Navigation Interception via Universal Security Shim
+// =============================================================================
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     // Ignore internal pages, subframes, and our own block page
-    // Also ignore when we are ALREADY redirecting (to prevent loop if logic fails)
     if (details.frameId !== 0 || 
         details.url.startsWith("chrome://") || 
         details.url.includes("chrome-extension://") ||
@@ -51,23 +59,45 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
 
     console.log("[PEP] Intercepting Navigation to:", details.url);
 
-    // 4. Synchronous Redirect Strategy
-    // We cannot "await" a server check. We must redirect immediately to ensure blocking.
-    // To identify "Authorized" redirects from our own block page, we check for a token.
-
-    if (details.url.includes("pep_pass=true")) {
-        console.log("[PEP] Authorized Pass:", details.url);
-        return; // Allow
-    }
-
-    // Redirect to Block Page
-    const blockPageUrl = chrome.runtime.getURL("block.html");
-    const redirectUrl = `${blockPageUrl}?target=${encodeURIComponent(details.url)}`;
-
-    chrome.tabs.update(details.tabId, { url: redirectUrl });
+    // Call Universal Security Shim with BROWSER protocol
+    // The Shim normalizes the intent and forwards to Policy Engine
+    fetch(`${SHIM_URL}/authorize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            protocol: "BROWSER",
+            payload: {
+                url: details.url,
+                tab_id: String(details.tabId)
+            }
+        })
+    }).then(res => {
+        // Shim returns 200 for PERMIT, 403 for PROHIBITION
+        if (res.status === 403) {
+            // Blocked - redirect to block page
+            console.log("[PEP] Blocked:", details.url);
+            const blockPageUrl = chrome.runtime.getURL("blocked.html");
+            const redirectUrl = `${blockPageUrl}?target=${encodeURIComponent(details.url)}`;
+            chrome.tabs.update(details.tabId, { url: redirectUrl });
+        } else if (res.status === 200) {
+            // Permitted - allow navigation
+            console.log("[PEP] Permitted:", details.url);
+        } else {
+            // Unexpected status - treat as error, allow but log
+            console.warn("[PEP] Unexpected response status:", res.status);
+        }
+    }).catch(err => {
+        console.error("[PEP] Shim Error:", err);
+        // On error, fail-safe: block the navigation
+        const blockPageUrl = chrome.runtime.getURL("blocked.html");
+        const redirectUrl = `${blockPageUrl}?target=${encodeURIComponent(details.url)}&reason=shim_error`;
+        chrome.tabs.update(details.tabId, { url: redirectUrl });
+    });
 });
 
-// 2. Action Interception Handler (from Content Script)
+// =============================================================================
+// 3. Action Interception Handler (from Content Script)
+// =============================================================================
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "CHECK_ACTION") {
         handleActionCheck(message.data, sendResponse);
@@ -77,26 +107,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleActionCheck(data, sendResponse) {
     try {
-        // Call Server (Blocking Check)
-        // action: "pay", target: currentUrl
-        const response = await fetch(`${SERVER_URL}/check`, {
+        // Call Shim with BROWSER protocol for action checks
+        // Actions like "pay" are still BROWSER protocol but with different action types
+        const response = await fetch(`${SHIM_URL}/authorize`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                agent_id: "browser_user",
-                action: data.action,
-                target: data.target,
-                context: data.context
+                protocol: "BROWSER",
+                payload: {
+                    url: data.target,
+                    tab_id: data.context?.tab_id || "unknown",
+                    action_type: data.action  // Additional context for non-navigation actions
+                }
             })
         });
 
-        const result = await response.json();
-        
-        // Notify Content Script
-        sendResponse({ status: result.status });
+        // Map HTTP status to result
+        if (response.status === 200) {
+            sendResponse({ status: "PERMIT" });
+        } else if (response.status === 403) {
+            sendResponse({ status: "PROHIBITION" });
+        } else {
+            sendResponse({ status: "ERROR" });
+        }
 
     } catch (e) {
-        console.error("Check error:", e);
+        console.error("[PEP] Action Check Error:", e);
         sendResponse({ status: "ERROR" });
     }
 }
