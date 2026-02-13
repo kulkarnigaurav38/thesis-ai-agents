@@ -1,164 +1,222 @@
-# ODRL Policy Definition
-uid: "http://example.com/policy:001"
+# ODRL Policy Definition for AI Agent Authorization
+# ================================================
+# This policy governs what AI agents (Browser, MCP, A2A) can do.
+# Prohibitions are checked FIRST (deny overrides allow).
+
+uid: "http://example.com/policy:002"
 type: "http://www.w3.org/ns/odrl/2/Set"
-profile: "http://example.com/odrl:profile:01"
+profile: "http://example.com/odrl:profile:agentic-ai"
+
+# ==============================================================================
+# PROHIBITIONS - Always Blocked (Attacker Commands)
+# ==============================================================================
+# These rules are checked FIRST and will ALWAYS block, regardless of permissions.
+
+prohibition:
+  # --- DANGEROUS FILE OPERATIONS ---
+  # Block reading sensitive system files
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "eq"
+        rightOperand: "read_file"
+      - name: "path_contains"
+        operator: "isAnyOf"
+        rightOperand: ["/etc/passwd", "/etc/shadow", ".ssh", ".aws", ".env", "credentials", "secrets", "private_key", ".git/config"]
+
+  # Block writing to system directories
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "eq"
+        rightOperand: "write_file"
+      - name: "path_starts_with"
+        operator: "isAnyOf"
+        rightOperand: ["/etc/", "/usr/", "/bin/", "/sbin/", "C:\\Windows\\", "C:\\Program Files\\"]
+
+  # Block file deletion entirely (dangerous)
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "isAnyOf"
+        rightOperand: ["delete_file", "rm", "remove", "unlink"]
+
+  # --- DANGEROUS SHELL COMMANDS ---
+  # Block shell execution with dangerous commands
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "isAnyOf"
+        rightOperand: ["run_command", "execute_command", "shell", "bash", "cmd"]
+      - name: "command_contains"
+        operator: "isAnyOf"
+        rightOperand: ["rm -rf", "del /f", "format", "mkfs", "dd if=", "wget", "curl | bash", "chmod 777", "sudo", "> /dev/", "nc -e", "reverse shell"]
+
+  # --- NETWORK EXFILTRATION ---
+  # Block outbound requests to suspicious destinations
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "isAnyOf"
+        rightOperand: ["fetch", "http_request", "curl", "wget", "requests"]
+      - name: "url_contains"
+        operator: "isAnyOf"
+        rightOperand: ["pastebin", "hastebin", "ngrok", "webhook.site", "requestbin", "pipedream"]
+
+  # --- BROWSER NAVIGATION BLOCKS ---
+  # Block known malicious/phishing sites
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    constraint:
+      - name: "url"
+        operator: "isAnyOf"
+        rightOperand: ["malicious.com", "phishing-example.com", "evil-site.net"]
+
+  # Block payment pages without explicit permission
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    constraint:
+      - name: "url_contains"
+        operator: "isAnyOf"
+        rightOperand: ["checkout", "payment", "billing", "pay."]
+
+  # --- CODE EXECUTION BLOCKS ---
+  # Block dynamic code execution
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "isAnyOf"
+        rightOperand: ["eval", "exec", "compile", "runpy"]
+
+  # --- CRYPTO/WALLET PROTECTION ---
+  # Block any access to crypto wallets
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "path_contains"
+        operator: "isAnyOf"
+        rightOperand: [".bitcoin", ".ethereum", "wallet.dat", "keystore", "metamask", "seed_phrase"]
+
+
+# ==============================================================================
+# PERMISSIONS - Allowed Actions
+# ==============================================================================
 
 permission:
-  # --- Payment Use Case ---
-  # 1. Trusted Merchant (Allow Always)
-  - target: "http://example.com/asset:payment_gateway"
-    action: "pay"
-    assignee: "user:agent-007"
+  # --- MCP TOOL EXECUTION ---
+  # 1. Safe file reading in project directory
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
     constraint:
+      - name: "tool_name"
+        operator: "eq"
+        rightOperand: "read_file"
+      - name: "is_within_project"
+        operator: "eq"
+        rightOperand: true
+
+  # 2. Safe file writing in project directory (with consent)
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "eq"
+        rightOperand: "write_file"
+      - name: "is_within_project"
+        operator: "eq"
+        rightOperand: true
+    duty:
+      - action: "obtainConsent"
+
+  # 3. Allow listing directories (safe read-only operation)
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "isAnyOf"
+        rightOperand: ["list_directory", "ls", "dir", "find", "glob"]
+
+  # 4. Allow code search/grep (read-only)
+  - target: "http://example.com/asset:mcp_tool"
+    action: "execute"
+    constraint:
+      - name: "tool_name"
+        operator: "isAnyOf"
+        rightOperand: ["search", "grep", "ripgrep", "find_in_files"]
+
+  # --- BROWSER NAVIGATION ---
+  # 1. Trusted Host (Allow Always via user_config.json)
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    constraint:
+      - name: "is_trusted_host"
+        operator: "eq"
+        rightOperand: true
+
+  # 2. Pre-approved development sites
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    constraint:
+      - name: "host"
+        operator: "isAnyOf"
+        rightOperand: ["github.com", "stackoverflow.com", "docs.python.org", "developer.mozilla.org", "pypi.org", "npmjs.com"]
+
+  # 3. Catch-All Navigation (Requires HITL)
+  - target: "http://example.com/asset:browser"
+    action: "navigate"
+    duty:
+      - action: "obtainConsent"
+
+  # --- PAYMENT USE CASE ---
+  # 1. Low-value payments (auto-allow under $10)
+  - target: "http://example.com/asset:payment"
+    action: "pay"
+    constraint:
+      - name: "amount"
+        operator: "lt"
+        rightOperand: 10
       - name: "is_trusted_merchant"
         operator: "eq"
         rightOperand: true
 
-  # 2. Pre-approved Merchants (Legacy Trust)
-  - target: "http://example.com/asset:payment_gateway"
+  # 2. All other payments require consent
+  - target: "http://example.com/asset:payment"
     action: "pay"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "merchant"
-        operator: "isAnyOf"
-        rightOperand: ["CoffeeShop", "BookStore"]
-
-  # 3. Catch-All Payment (Requires HITL)
-  - target: "http://example.com/asset:payment_gateway"
-    action: "pay"
-    assignee: "user:agent-007"
-    # No constraint means "Match Any".
-    # But we attach a Duty to enforcing consent.
-    duty:
-      - action: "obtainConsent"
-        constraint:
-          - name: "amount"
-            operator: "gte"
-            rightOperand: 0 # Always ask for consent for unknown merchants
-
-  # --- Navigation Use Case ---
-  # 1. Trusted Host (Allow Always)
-  - target: "http://example.com/asset:browser"
-    action: "navigate"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "is_trusted_host"
-        operator: "eq"
-        rightOperand: true
-
-  # 2. Pre-approved Sites
-  - target: "http://example.com/asset:browser"
-    action: "navigate"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "url"
-        operator: "isAnyOf"
-        rightOperand: ["google.com", "github.com", "stackoverflow.com"]
-  
-  # 3. Catch-All Navigation (Requires HITL) (Optional, or Default Deny)
-  # For safety, let's allow navigation to arbitrary sites ONLY with Consent
-  - target: "http://example.com/asset:browser"
-    action: "navigate"
-    assignee: "user:agent-007"
     duty:
       - action: "obtainConsent"
 
-  # --- Network Egress ---
-  # 1. Trusted Host
-  - target: "http://example.com/asset:network"
-    action: "request"
-    assignee: "user:agent-007"
+  # --- A2A DELEGATION ---
+  # 1. Allow delegation to trusted agents
+  - target: "http://example.com/asset:a2a"
+    action: "delegate"
     constraint:
-      - name: "is_trusted_host"
+      - name: "is_trusted_agent"
         operator: "eq"
         rightOperand: true
 
-  # 2. Allowlist
+  # 2. All other delegation requires consent
+  - target: "http://example.com/asset:a2a"
+    action: "delegate"
+    duty:
+      - action: "obtainConsent"
+
+  # --- NETWORK REQUESTS ---
+  # 1. Allow requests to trusted API hosts
   - target: "http://example.com/asset:network"
     action: "request"
-    assignee: "user:agent-007"
     constraint:
       - name: "host"
         operator: "isAnyOf"
-        rightOperand: ["api.github.com", "pypi.org"]
+        rightOperand: ["api.github.com", "api.openai.com", "api.anthropic.com", "pypi.org", "registry.npmjs.org"]
 
-  # --- File Access ---
-  # 1. Trusted File
-  - target: "http://example.com/asset:filesystem"
-    action: "read"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "is_trusted_file"
-        operator: "eq"
-        rightOperand: true
-
-  # 2. Allowlist
-  - target: "http://example.com/asset:filesystem"
-    action: "read"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "filename"
-        operator: "isAnyOf"
-        rightOperand: ["README.md", "public.txt"]
-
-  # --- Card Network Use Case (Phase 4) ---
-  # 1. Visa Limit ($100)
-  - target: "http://example.com/asset:card_network"
-    action: "charge"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "card_type"
-        operator: "eq"
-        rightOperand: "Visa"
-      - name: "amount"
-        operator: "lt"
-        rightOperand: 100
-
-  # 2. Mastercard Limit ($500)
-  - target: "http://example.com/asset:card_network"
-    action: "charge"
-    assignee: "user:agent-007"
-    constraint:
-      - name: "card_type"
-        operator: "eq"
-        rightOperand: "Mastercard"
-      - name: "amount"
-        operator: "lt"
-        rightOperand: 500
-
-  # 2. Catch-All Booking (Requires HITL) (e.g. First Class > $600)
-  - target: "http://example.com/asset:airline_agent"
-    action: "book_flight"
-    assignee: "user:agent-007"
+  # 2. All other network requests require consent
+  - target: "http://example.com/asset:network"
+    action: "request"
     duty:
       - action: "obtainConsent"
-
-  # --- Calendar Use Case (Browser Demo) ---
-  # 1. View Event (Allowed)
-  - target: "http://example.com/asset:calendar_event"
-    action: "view" # Currently background.js defaults generic URLs to 'navigate', but we can map specific ones
-    assignee: "user:agent-007"
-    constraint: [] # Auto-allow
-
-  # 2. Delete Event (Requires HITL)
-  - target: "http://example.com/asset:calendar_event"
-    action: "delete"
-    assignee: "user:agent-007"
-    duty:
-      - action: "obtainConsent"
-
-  # 3. Catch-All Card Charge (Requires HITL)
-  - target: "http://example.com/asset:card_network"
-    action: "charge"
-    assignee: "user:agent-007"
-    duty:
-      - action: "obtainConsent"
-
-# Explicit Prohibitions (Checked First)
-prohibition:
-  - target: "http://example.com/asset:browser"
-    action: "navigate"
-    constraint:
-      - name: "url"
-        operator: "eq"
-        rightOperand: "malicious.com"

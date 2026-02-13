@@ -34,11 +34,9 @@ async function performCheck() {
             document.getElementById('status-text').innerText = "Redirecting you now...";
             document.getElementById('spinner').style.borderTopColor = "#2ecc71"; // Green
             
-            // Wait a split second for UX then redirect with Pass Token
-            // We append pep_pass=true to tell background.js to let this through
+            // Wait a split second for UX then redirect
             setTimeout(() => {
-                const separator = targetUrl.includes('?') ? '&' : '?';
-                window.location.replace(targetUrl + separator + 'pep_pass=true');
+                window.location.replace(targetUrl);
             }, 500);
 
         } else if (result.status === "PROHIBITION") {

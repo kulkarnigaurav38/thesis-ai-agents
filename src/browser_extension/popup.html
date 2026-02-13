@@ -2,36 +2,99 @@
 <html>
 <head>
     <style>
-        body { width: 300px; font-family: 'Segoe UI', sans-serif; padding: 10px; }
-        h3 { margin-top: 0; color: #333; }
-        .request-card {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #f9f9f9;
+        body { 
+            width: 320px; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            padding: 15px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            margin: 0;
         }
-        .request-info { font-size: 13px; margin-bottom: 8px; }
-        .btn-group { display: flex; gap: 5px; }
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        header h3 { 
+            margin: 0; 
+            color: #00d4ff;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .request-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ffc107;
+        }
+        .request-info { 
+            font-size: 12px; 
+            margin-bottom: 10px;
+            color: #ccc;
+        }
+        .request-info strong { color: #fff; }
+        .btn-group { display: flex; gap: 6px; }
         button {
             flex: 1;
-            padding: 6px;
+            padding: 8px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
         }
-        .btn-allow { background: #4CAF50; color: white; }
-        .btn-always { background: #2196F3; color: white; }
-        .btn-deny { background: #F44336; color: white; }
-        .no-requests { color: #666; font-style: italic; text-align: center; margin: 20px 0; }
+        button:hover { transform: translateY(-1px); }
+        .btn-allow { background: #28a745; color: white; }
+        .btn-always { background: #17a2b8; color: white; }
+        .btn-deny { background: #dc3545; color: white; }
+        .no-requests { 
+            color: #888; 
+            font-style: italic; 
+            text-align: center; 
+            padding: 20px 0;
+        }
+        
+        /* Policy Manager Button */
+        .manage-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+        .manage-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,212,255,0.3);
+        }
     </style>
 </head>
 <body>
-    <h3>Agent Authorization</h3>
+    <header>
+        <h3>🛡️ Agent Authorization</h3>
+    </header>
+    
     <div id="request-list">
         <div class="no-requests">No pending requests</div>
     </div>
+    
+    <button class="manage-btn" id="managePoliciesBtn">
+        ⚙️ Manage Policies
+    </button>
+    
     <script src="popup.js"></script>
 </body>
 </html>

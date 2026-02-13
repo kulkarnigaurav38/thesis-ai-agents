@@ -152,9 +152,117 @@ def resolve_request():
 @app.route('/audit', methods=['GET'])
 def get_audit_logs():
     logs = audit_logger.get_logs(20)
-    # Convert Row objects to dicts is handled in get_logs if row_factory set, 
-    # but here let's ensure JSON serializable
     return jsonify(logs)
+
+# =============================================================================
+# Policy Management Endpoints (for Extension UI)
+# =============================================================================
+
+@app.route('/policies', methods=['GET'])
+def get_policies():
+    """Get all whitelist and blacklist entries."""
+    user_policy = UserPolicyStore(USER_CONFIG_PATH)
+    config = user_policy.config
+    
+    return jsonify({
+        "whitelist": config.get("trusted", {}).get("host", []),
+        "blacklist": config.get("blocked", {}).get("host", [])
+    })
+
+@app.route('/policies/whitelist', methods=['POST'])
+def add_to_whitelist():
+    """Add a host to the whitelist (trusted)."""
+    data = request.json
+    host = data.get('host', '').strip().lower()
+    
+    if not host:
+        return jsonify({"error": "Host is required"}), 400
+    
+    # Remove protocol if present
+    if host.startswith("http://"):
+        host = host[7:]
+    elif host.startswith("https://"):
+        host = host[8:]
+    # Remove trailing slash
+    host = host.rstrip("/")
+    
+    user_policy = UserPolicyStore(USER_CONFIG_PATH)
+    
+    # Remove from blacklist if present
+    if "blocked" in user_policy.config and "host" in user_policy.config["blocked"]:
+        if host in user_policy.config["blocked"]["host"]:
+            user_policy.config["blocked"]["host"].remove(host)
+    
+    # Add to whitelist
+    user_policy.add_trust("host", host)
+    
+    print(f"[Server] Added to whitelist: {host}")
+    return jsonify({"status": "success", "host": host})
+
+@app.route('/policies/blacklist', methods=['POST'])
+def add_to_blacklist():
+    """Add a host to the blacklist (blocked)."""
+    data = request.json
+    host = data.get('host', '').strip().lower()
+    
+    if not host:
+        return jsonify({"error": "Host is required"}), 400
+    
+    # Remove protocol if present
+    if host.startswith("http://"):
+        host = host[7:]
+    elif host.startswith("https://"):
+        host = host[8:]
+    host = host.rstrip("/")
+    
+    user_policy = UserPolicyStore(USER_CONFIG_PATH)
+    
+    # Remove from whitelist if present
+    if "trusted" in user_policy.config and "host" in user_policy.config["trusted"]:
+        if host in user_policy.config["trusted"]["host"]:
+            user_policy.config["trusted"]["host"].remove(host)
+            user_policy._save()
+    
+    # Add to blacklist
+    if "blocked" not in user_policy.config:
+        user_policy.config["blocked"] = {}
+    if "host" not in user_policy.config["blocked"]:
+        user_policy.config["blocked"]["host"] = []
+    
+    if host not in user_policy.config["blocked"]["host"]:
+        user_policy.config["blocked"]["host"].append(host)
+        user_policy._save()
+    
+    print(f"[Server] Added to blacklist: {host}")
+    return jsonify({"status": "success", "host": host})
+
+@app.route('/policies/whitelist/<path:host>', methods=['DELETE'])
+def remove_from_whitelist(host):
+    """Remove a host from the whitelist."""
+    user_policy = UserPolicyStore(USER_CONFIG_PATH)
+    
+    if "trusted" in user_policy.config and "host" in user_policy.config["trusted"]:
+        if host in user_policy.config["trusted"]["host"]:
+            user_policy.config["trusted"]["host"].remove(host)
+            user_policy._save()
+            print(f"[Server] Removed from whitelist: {host}")
+            return jsonify({"status": "success"})
+    
+    return jsonify({"error": "Host not found"}), 404
+
+@app.route('/policies/blacklist/<path:host>', methods=['DELETE'])
+def remove_from_blacklist(host):
+    """Remove a host from the blacklist."""
+    user_policy = UserPolicyStore(USER_CONFIG_PATH)
+    
+    if "blocked" in user_policy.config and "host" in user_policy.config["blocked"]:
+        if host in user_policy.config["blocked"]["host"]:
+            user_policy.config["blocked"]["host"].remove(host)
+            user_policy._save()
+            print(f"[Server] Removed from blacklist: {host}")
+            return jsonify({"status": "success"})
+    
+    return jsonify({"error": "Host not found"}), 404
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Manager</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 30px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        header h1 {
+            font-size: 28px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        header p {
+            color: #888;
+            margin-top: 8px;
+        }
+        
+        /* Add Form */
+        .add-form {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .add-form input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 14px;
+        }
+        .add-form input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .add-form select {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .add-form button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .add-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,212,255,0.3);
+        }
+        
+        /* Sections */
+        .section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section.whitelist h2 { color: #28a745; }
+        .section.blacklist h2 { color: #dc3545; }
+        
+        /* List */
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+        .whitelist .list-item { border-left-color: #28a745; }
+        .blacklist .list-item { border-left-color: #dc3545; }
+        
+        .list-item span {
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .list-item button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(220,53,69,0.2);
+            color: #dc3545;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .list-item button:hover {
+            background: rgba(220,53,69,0.4);
+        }
+        
+        .empty {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        /* Status */
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.success { background: #28a745; display: block; }
+        .status.error { background: #dc3545; display: block; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Policy Manager</h1>
+            <p>Control which websites are allowed or blocked</p>
+        </header>
+        
+        <div class="add-form">
+            <input type="text" id="hostInput" placeholder="Enter domain (e.g., example.com)">
+            <select id="listType">
+                <option value="whitelist">✅ Whitelist (Allow)</option>
+                <option value="blacklist">🚫 Blacklist (Block)</option>
+            </select>
+            <button onclick="addHost()">+ Add</button>
+        </div>
+        
+        <div class="section whitelist">
+            <h2>✅ Whitelist (Trusted Sites)</h2>
+            <div class="list" id="whitelistItems">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="section blacklist">
+            <h2>🚫 Blacklist (Blocked Sites)</h2>
+            <div class="list" id="blacklistItems">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status" id="status"></div>
+    
+    <script src="policies.js"></script>
+</body>
+</html>

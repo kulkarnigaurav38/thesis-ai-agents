@@ -67,3 +67,8 @@ async function resolveRequest(id, decision, trustAlways) {
         console.error("Resolve error:", e);
     }
 }
+
+// Manage Policies Button
+document.getElementById('managePoliciesBtn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('policies.html') });
+});
