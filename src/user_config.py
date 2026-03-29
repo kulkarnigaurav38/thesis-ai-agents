@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List, Set
+from typing import Dict, List, Any
 
 class UserPolicyStore:
     def __init__(self, config_path: str = "config/user_config.json"):
@@ -9,18 +9,34 @@ class UserPolicyStore:
 
     def _load_config(self):
         if not os.path.exists(self.config_path):
-            self.data = {"trusted": {}}
+            self.data = {"trusted": {}, "blocked": {}}
+            self._save_config()
         else:
             with open(self.config_path, 'r') as f:
                 self.data = json.load(f)
+                # Ensure blocked key exists
+                if "blocked" not in self.data:
+                    self.data["blocked"] = {}
 
     def _save_config(self):
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
         with open(self.config_path, 'w') as f:
             json.dump(self.data, f, indent=2)
+    
+    # Alias for compatibility with server.py
+    def _save(self):
+        self._save_config()
+    
+    @property
+    def config(self):
+        """Property to access internal data (for backward compatibility)."""
+        return self.data
 
     def add_trust(self, category: str, value: str):
         """Adds a value to the trusted list for a category (e.g., merchant, domain)."""
+        if "trusted" not in self.data:
+            self.data["trusted"] = {}
+            
         if category not in self.data["trusted"]:
             self.data["trusted"][category] = []
         
@@ -30,9 +46,25 @@ class UserPolicyStore:
 
     def is_trusted(self, category: str, value: str) -> bool:
         """Checks if a value is in the trusted list."""
-        return value in self.data.get("trusted", {}).get(category, [])
+        trusted_list = self.data.get("trusted", {}).get(category, [])
+        return value in trusted_list
+    
+    def is_blocked(self, category: str, value: str) -> bool:
+        """Checks if a value is in the blocked list."""
+        blocked_list = self.data.get("blocked", {}).get(category, [])
+        return value in blocked_list
 
     def revoke_trust(self, category: str, value: str):
-         if category in self.data["trusted"] and value in self.data["trusted"][category]:
+        """Removes a value from the trusted list."""
+        if category in self.data.get("trusted", {}) and value in self.data["trusted"][category]:
             self.data["trusted"][category].remove(value)
             self._save_config()
+
+    def get_all_trusts(self) -> Dict[str, List[str]]:
+        """Returns all trusted entities."""
+        return self.data.get("trusted", {})
+    
+    def get_all_blocked(self) -> Dict[str, List[str]]:
+        """Returns all blocked entities."""
+        return self.data.get("blocked", {})
+

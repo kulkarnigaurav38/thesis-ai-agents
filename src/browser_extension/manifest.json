@@ -1,22 +1,42 @@
 {
   "manifest_version": 3,
-  "name": "Agent Security Enforcer",
+  "name": "Agent Authorization PEP",
   "version": "1.0",
-  "description": "Enforces security policies for AI Agents in the browser.",
+  "description": "User Interface for Agent Policy Enforcement Point.",
   "permissions": [
-    "webNavigation",
-    "webRequest",
     "storage",
-    "tabs",
+    "notifications",
+    "alarms",
+    "webNavigation",
+    "scripting",
     "activeTab"
   ],
   "host_permissions": [
+    "http://127.0.0.1:5000/*",
+    "http://localhost:5000/*",
     "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"],
+      "run_at": "document_end"
+    }
+  ],
   "action": {
-    "default_title": "Agent Security Enforcer"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
   }
 }
