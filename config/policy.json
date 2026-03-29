@@ -1,0 +1,211 @@
+{
+  "rules": [
+    {
+      "contains": [
+        "github.com"
+      ],
+      "description": "Trust github.com",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "localhost"
+      ],
+      "description": "Trust localhost",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "youtube.com"
+      ],
+      "description": "Trust YouTube",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "chatgpt.com"
+      ],
+      "description": "Trust ChatGPT",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "google.com"
+      ],
+      "description": "Trust Google",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "amazon.com"
+      ],
+      "description": "Trust Amazon",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "list_directory",
+        "ls",
+        "dir",
+        "find",
+        "glob"
+      ],
+      "description": "Allow directory listing tools",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "search",
+        "grep",
+        "ripgrep",
+        "find_in_files"
+      ],
+      "description": "Allow search tools",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "stackoverflow.com",
+        "docs.python.org",
+        "developer.mozilla.org",
+        "pypi.org",
+        "npmjs.com"
+      ],
+      "description": "Allow developer documentation",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "api.github.com",
+        "api.openai.com",
+        "api.anthropic.com",
+        "registry.npmjs.org"
+      ],
+      "description": "Allow known API endpoints",
+      "type": "allow"
+    },
+    {
+      "contains": [
+        "malicious.com",
+        "phishing-example.com",
+        "evil-site.net"
+      ],
+      "description": "Block known malicious sites",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "/etc/passwd",
+        "/etc/shadow",
+        ".ssh",
+        ".aws",
+        ".env",
+        "credentials",
+        "secrets",
+        "private_key",
+        ".git/config"
+      ],
+      "description": "Block sensitive system files",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "/etc/",
+        "/usr/",
+        "/bin/",
+        "/sbin/",
+        "C:\\Windows\\",
+        "C:\\Program Files\\"
+      ],
+      "description": "Block writing to system directories",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "delete_file",
+        "rm",
+        "remove",
+        "unlink"
+      ],
+      "description": "Block file deletion tools",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "rm -rf",
+        "del /f",
+        "format c:",
+        "mkfs",
+        "dd if=",
+        "chmod 777",
+        "reverse shell"
+      ],
+      "description": "Block dangerous shell commands",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "pastebin",
+        "hastebin",
+        "ngrok",
+        "webhook.site",
+        "requestbin",
+        "pipedream"
+      ],
+      "description": "Block data exfiltration URLs",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "eval",
+        "exec",
+        "compile",
+        "runpy"
+      ],
+      "description": "Block code execution tools",
+      "type": "block"
+    },
+    {
+      "contains": [
+        ".bitcoin",
+        ".ethereum",
+        "wallet.dat",
+        "keystore",
+        "metamask",
+        "seed_phrase"
+      ],
+      "description": "Block crypto wallet access",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "checkout",
+        "payment",
+        "billing"
+      ],
+      "description": "Block payment/checkout pages",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "reddit.com"
+      ],
+      "description": "Block reddit.com",
+      "type": "block"
+    },
+    {
+      "contains": [
+        "example.com"
+      ],
+      "description": "Trust example.com",
+      "type": "allow"
+    },
+    {
+      "type": "block",
+      "description": "Block duck duck go",
+      "contains": [
+        "duckduckgo.com"
+      ]
+    }
+  ]
+}

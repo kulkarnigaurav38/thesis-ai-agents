@@ -13,7 +13,7 @@ AI Agent (MCP / A2A / Browser Extension)
     Shim Service  :8000       ← normalizes and intercepts all agent actions
             |
             ▼
-    Policy Engine :5000       ← evaluates requests against ODRL policy rules
+    Policy Engine :5000       ← evaluates requests against policy rules
             |
             ▼
   PERMIT / PROHIBITION / CONSENT_NEEDED
@@ -145,37 +145,40 @@ The extension communicates with:
 
 ## Policy Configuration
 
-Policies are defined in `config/policy.yaml` using an ODRL-inspired structure with three rule types evaluated in order:
+Policies are defined in `config/policy.json` as a flat `rules` array. Each rule has three fields:
 
-1. **`prohibition`** — always checked first; matched requests are denied immediately
-2. **`permission`** — explicit allow rules, optionally with constraints and duties
-3. **Default deny** — any request not matched by the above is denied
+| Field | Values | Meaning |
+|---|---|---|
+| `type` | `"allow"` or `"block"` | Decision when a match is found |
+| `contains` | array of strings | If any string appears in the request target, the rule fires |
+| `description` | string | Human-readable label (shown in the extension UI) |
 
-Example structure:
-```yaml
-prohibition:
-  - action: "execute"
-    target: "http://example.com/asset:mcp_tool"
-    constraint:
-      - name: "tool_name"
-        operator: "isAnyOf"
-        rightOperand: ["delete_file", "rm", "exec"]
+Rules are evaluated top-to-bottom. The first match wins. If no rule matches, the request is escalated to the user for consent (`CONSENT_NEEDED`).
 
-permission:
-  - action: "navigate"
-    target: "http://example.com/asset:browser"
-    constraint:
-      - name: "is_trusted_host"
-        operator: "eq"
-        rightOperand: "true"
-
-  - action: "navigate"
-    target: "http://example.com/asset:browser"
-    duty:
-      - action: "obtainConsent"
+Example `config/policy.json`:
+```json
+{
+  "rules": [
+    {
+      "type": "allow",
+      "contains": ["github.com", "stackoverflow.com"],
+      "description": "Allow developer resources"
+    },
+    {
+      "type": "block",
+      "contains": ["/etc/passwd", ".ssh", "credentials"],
+      "description": "Block sensitive system files"
+    },
+    {
+      "type": "block",
+      "contains": ["malicious.com", "phishing-example.com"],
+      "description": "Block known malicious sites"
+    }
+  ]
+}
 ```
 
-User trust decisions (made via the browser extension's "Trust Always" button) are persisted in `config/user_config.json` and enriched into the request context before policy evaluation.
+User trust decisions made via the browser extension's "Trust Always" button are persisted separately in `config/user_config.json` and take precedence over the default policy.
 
 ---
 
@@ -193,14 +196,14 @@ python -m pytest tests/test_confused_deputy.py -v
 python -m pytest tests/test_prompt_injection.py -v
 ```
 
-> **Note:** These tests import `src.shim.ODRLShim`. If this module has been refactored, run the PowerShell integration test instead, which hits the live HTTP endpoints directly:
+Alternatively, use the PowerShell integration test which sends real HTTP requests to the live endpoints:
 
 ```powershell
 # Windows PowerShell (both servers must be running)
 .\tests\test_shim.ps1
 ```
 
-The PowerShell test sends real HTTP requests to the Shim at `localhost:8000` and verifies that safe requests are permitted and dangerous ones (e.g., reading `/etc/passwd`) are blocked.
+The PowerShell test hits `localhost:8000` directly and verifies that safe requests are permitted and dangerous ones (e.g., reading `/etc/passwd`) are blocked with a `403` response.
 
 ---
 
@@ -229,11 +232,11 @@ python evaluation/generate_graphs.py
 ```
 thesis-ai-agents/
 ├── config/
-│   └── policy.yaml              # ODRL-style policy rules (YAML)
+│   └── policy.json              # Policy rules (JSON, editable)
 ├── src/
 │   ├── server.py                # Policy Engine / PDP (port 5000)
 │   ├── shim_service.py          # Shim middleware / PEP (port 8000)
-│   ├── policy_engine.py         # ODRL rule evaluator (ODRLEvaluator)
+│   ├── policy_engine.py         # ODRL rule evaluator
 │   ├── audit_logger.py          # SQLite-backed audit trail
 │   ├── user_config.py           # Runtime trust/block persistence
 │   └── browser_extension/       # Chrome extension (load unpacked)
