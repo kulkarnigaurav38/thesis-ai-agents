@@ -262,7 +262,7 @@ thesis-ai-agents/
 
 ```
 Release URL : https://github.com/kulkarnigaurav38/thesis-ai-agents/releases/tag/v1.0.0
-SHA-256     : d2abd288b8d737076a842a495e35bbed46ae7601e10c7b9b6e86e719023805fd
+SHA-256     : 5fcc50110896eb7947e260e3f60891cdd4d653fe7929ab5b11ebc7ccfa4860582
 ```
 
 To verify integrity after downloading the source zip:
