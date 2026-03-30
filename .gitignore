@@ -28,3 +28,6 @@ Thumbs.db
 
 # Browser Extension
 src/browser_extension/*.pem
+
+# Generated evaluation outputs (regenerable)
+evaluation/graphs/
